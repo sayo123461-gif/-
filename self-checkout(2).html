@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>セルフレジ</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;font-family:"Helvetica Neue","Noto Sans JP",Arial,sans-serif;background:#f7f7f7;color:#222}
+button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.screen{display:none;min-height:100vh}.screen.active{display:flex}
+.topbar{height:72px;background:#fff;border-bottom:1px solid #ddd;display:flex;align-items:center;padding:0 28px;justify-content:space-between}
+.brand{font-size:22px;font-weight:700;letter-spacing:.06em}
+.progress{font-size:14px;color:#777}
+.content{width:100%;padding:38px 42px 105px}
+.title{text-align:center;font-size:30px;font-weight:600;margin:15px 0 8px}
+.caption{text-align:center;color:#666;margin:0 0 30px;font-size:16px}
+.center{width:100%;max-width:920px;margin:auto}
+.start-wrap{margin:auto;text-align:center;width:min(760px,90%)}
+.start-logo{font-size:24px;font-weight:700;margin-bottom:28px}
+.start-wrap h1{font-size:40px;font-weight:600;margin:0 0 12px}
+.start-wrap p{color:#666;font-size:17px}
+.primary{background:#1677c8;color:#fff;border-radius:8px;padding:20px 70px;font-size:24px;font-weight:600;box-shadow:0 2px 4px #0002}
+.primary:active,.choice:active,.product:active,.pay:active{transform:translateY(1px)}
+.choice-row{display:flex;gap:20px;justify-content:center}
+.choice{background:#fff;border:1px solid #d6d6d6;border-radius:10px;padding:34px 70px;min-width:280px;font-size:23px;font-weight:600;box-shadow:0 2px 6px #0000000d}
+.choice small{display:block;font-size:14px;font-weight:400;color:#777;margin-top:8px}
+.scan-layout{display:grid;grid-template-columns:1fr 390px;gap:24px;max-width:1280px;margin:auto}
+.product-area{background:#fff;border:1px solid #ddd;border-radius:8px;padding:20px}
+.product-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.product{background:#fff;border:1px solid #ddd;border-radius:7px;text-align:left;padding:17px;min-height:145px}
+.product .icon{font-size:35px;margin-bottom:10px}
+.product .name{font-weight:600;font-size:17px}.product .price{margin-top:5px;color:#444}
+.product .add{margin-top:14px;background:#1677c8;color:#fff;width:100%;padding:10px;border-radius:5px;font-weight:600}
+.cart{background:#fff;border:1px solid #ddd;border-radius:8px;padding:20px;height:fit-content;position:sticky;top:20px}
+.cart-title{font-size:19px;font-weight:600;border-bottom:1px solid #ddd;padding-bottom:14px}
+.cart-item{padding:14px 0;border-bottom:1px solid #eee;display:grid;grid-template-columns:1fr auto;gap:8px}
+.item-name{font-weight:600}.item-price{text-align:right}
+.controls{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.qty-btn{width:36px;height:36px;border:1px solid #bbb;background:#fff;border-radius:8px;font-size:20px;line-height:1;min-width:36px}
+.qty-num{min-width:22px;text-align:center}
+.remove{font-size:12px;color:#777;margin-left:5px;background:none}
+.total{display:flex;justify-content:space-between;font-size:24px;font-weight:700;padding:20px 0 12px}
+.checkout{width:100%;background:#1677c8;color:#fff;padding:15px;border-radius:7px;font-size:19px;font-weight:600}
+.empty{color:#888;padding:25px 0;text-align:center}
+.payment-box{background:#fff;border:1px solid #ddd;border-radius:8px;padding:28px;max-width:900px;margin:auto}
+.payment-total{display:flex;justify-content:space-between;font-size:23px;border-bottom:1px solid #ddd;padding-bottom:18px}
+.pay-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:24px}
+.pay{background:#fff;border:1px solid #ccc;border-radius:8px;padding:25px;font-size:20px;font-weight:600}
+.pay span{display:block;font-size:30px;margin-bottom:8px}
+.pay:disabled{opacity:.45;cursor:not-allowed}
+.instruction{text-align:center;background:#f0f5f9;border:1px solid #d4e0e8;border-radius:8px;padding:28px;margin-top:22px;font-size:22px}
+.complete-box{margin:auto;text-align:center;background:#fff;border:1px solid #ddd;border-radius:8px;padding:55px;max-width:700px}
+.complete-mark{font-size:58px;color:#1677c8;margin-bottom:18px}
+.complete-box h1{font-size:32px;font-weight:600;margin:0 0 15px}
+.employee-btn{position:fixed;right:20px;bottom:18px;z-index:50;background:#444;color:#fff;padding:13px 19px;border-radius:6px;font-size:14px}
+.employee-screen{background:#eef1f4;min-height:100vh;width:100%;display:block}
+.employee-panel{width:min(1000px,92%);margin:40px auto;background:#fff;border:1px solid #d4d7da;border-radius:8px;padding:30px}
+.employee-panel h1{font-size:28px;margin:0 0 8px}.employee-panel .sub{color:#777;margin-bottom:25px}
+.setting-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.setting{border:1px solid #ddd;background:#fafafa;border-radius:7px;padding:18px}
+.setting label{display:block;font-weight:600;margin-bottom:10px}
+.setting select,.setting input{width:100%;padding:11px;border:1px solid #bbb;border-radius:5px;background:#fff}
+.switch{display:flex;justify-content:space-between;align-items:center}
+.switch input{width:20px;height:20px}
+.emp-actions{display:flex;gap:12px;margin-top:25px;flex-wrap:wrap}
+.emp-action{padding:13px 20px;border-radius:6px;background:#1677c8;color:#fff}
+.emp-action.gray{background:#666}.emp-action.red{background:#a52a2a}
+.status{margin-top:22px;padding:14px;background:#f5f7f8;border:1px solid #ddd;border-radius:6px;color:#555}
+@media(max-width:900px){
+.scan-layout{grid-template-columns:1fr}.product-grid{grid-template-columns:repeat(2,1fr)}.cart{position:static}.choice-row,.pay-grid,.setting-grid{grid-template-columns:1fr;display:grid}
+}
+
+/* チャレンジタッチ3・Androidタブレット縦画面向け */
+@media (max-width: 800px) and (orientation: portrait){
+  html,body{width:100%;min-width:0;overflow-x:hidden;-webkit-text-size-adjust:100%}
+  body{font-size:16px}
+  .screen{min-height:100dvh;height:auto;width:100%;overflow-x:hidden}
+  .topbar{height:58px;padding:0 12px;gap:8px}
+  .topbar .brand{font-size:17px}
+  .topbar button{min-width:44px;min-height:44px;padding:8px}
+  .main,.container,.content{width:100%;max-width:100%;padding-left:12px!important;padding-right:12px!important}
+  .card{width:100%;max-width:100%;margin-left:auto;margin-right:auto}
+  .products,.product-grid,.grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+  .product,.product-card{min-width:0;width:100%;min-height:110px;padding:12px!important}
+  button{min-height:46px;touch-action:manipulation}
+  input,select,textarea{font-size:16px!important;min-height:44px;max-width:100%}
+  .cart{max-height:none}
+  .actions,.button-row,.footer-actions{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}
+  .payment-methods{grid-template-columns:1fr!important}
+  #productAdminList>div{grid-template-columns:42px minmax(0,1fr)!important}
+  #productAdminList>div input[type="number"]{grid-column:2}
+  #productAdminList>div button{grid-column:2;width:100%}
+  table{display:block;overflow-x:auto;white-space:nowrap;max-width:100%}
+}
+
+/* ===== タブレット共通（タッチ最適化） ===== */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+button,a,.product,.choice,.pay,.qty-btn,.remove,.emp-action,.add,.checkout,.primary{
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+  user-select:none;
+  -webkit-user-select:none;
+}
+input,select,textarea{font-size:16px!important} /* iOSズーム防止 */
+
+/* タブレット横向き・中型（768px〜1100px） */
+@media (min-width:768px) and (max-width:1100px){
+  .content{padding:24px 20px 90px}
+  .scan-layout{grid-template-columns:1fr 320px;gap:16px;max-width:100%}
+  .product-grid{grid-template-columns:repeat(3,1fr);gap:10px}
+  .product{min-height:130px;padding:14px}
+  .product .icon{font-size:30px}
+  .product .name{font-size:15px}
+  .product .add{padding:12px;min-height:44px;font-size:15px}
+  .choice{min-width:0;padding:28px 24px;font-size:20px}
+  .choice-row{gap:14px}
+  .pay{padding:22px 16px;font-size:18px;min-height:100px}
+  .topbar{height:64px;padding:0 18px}
+  .title{font-size:26px}
+  .qty-btn{width:40px;height:40px;font-size:22px}
+  .employee-btn{padding:14px 18px;font-size:15px;min-height:48px}
+  .employee-panel{width:min(960px,94%);margin:24px auto;padding:24px}
+  .setting-grid{gap:12px}
+}
+
+/* タブレット縦向き（幅〜900px） */
+@media (max-width:900px){
+  .scan-layout{grid-template-columns:1fr;gap:16px}
+  .product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .cart{position:static;margin-top:8px}
+  .choice-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .choice{min-width:0;padding:28px 16px;font-size:20px}
+  .pay-grid{grid-template-columns:1fr;gap:12px}
+  .setting-grid{grid-template-columns:1fr}
+  .content{padding:20px 16px 100px}
+  .topbar{height:60px;padding:0 14px}
+  .brand{font-size:18px}
+  .title{font-size:24px}
+  .start-wrap h1{font-size:32px}
+  .primary{padding:18px 48px;font-size:22px;min-height:56px;width:min(100%,360px)}
+  .product{min-height:120px;padding:14px}
+  .product .add{min-height:46px;padding:12px;font-size:15px}
+  .qty-btn{width:42px;height:42px;font-size:22px;border-radius:8px}
+  .checkout{min-height:52px;font-size:18px;padding:14px}
+  .pay{min-height:90px;padding:20px;font-size:18px}
+  .employee-btn{bottom:14px;right:14px;padding:14px 16px;min-height:48px;font-size:14px}
+  .employee-btn[style*="right:170px"]{right:150px!important}
+  .employee-panel{width:94%;margin:16px auto;padding:20px}
+  .emp-actions{flex-direction:column}
+  .emp-action{width:100%;min-height:48px;justify-content:center}
+  #productAdminList>div{grid-template-columns:48px minmax(0,1fr)!important;gap:8px}
+  #productAdminList>div input[type="number"]{grid-column:2}
+  #productAdminList>div button{grid-column:2;width:100%;min-height:44px}
+}
+
+/* チャレンジタッチ3・小型タブレット縦（〜800px portrait） */
+@media (max-width:800px) and (orientation:portrait){
+  html,body{width:100%;min-width:0;overflow-x:hidden}
+  .screen{min-height:100dvh;height:auto;width:100%;overflow-x:hidden}
+  .topbar{height:56px;padding:0 12px}
+  .topbar .brand{font-size:16px}
+  .content{padding:16px 12px 110px}
+  .product-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px}
+  .product{min-height:110px;padding:12px}
+  .product .icon{font-size:28px;margin-bottom:6px}
+  .product .name{font-size:14px}
+  .product .price{font-size:14px}
+  .product .add{min-height:44px;padding:10px;font-size:14px}
+  .choice-row{grid-template-columns:1fr;gap:12px}
+  .choice{padding:24px 16px;font-size:18px}
+  .pay-grid{grid-template-columns:1fr}
+  .cart-title{font-size:17px}
+  .total{font-size:20px}
+  .instruction{font-size:18px;padding:20px}
+  .complete-box{padding:36px 20px;margin:12px}
+  .complete-box h1{font-size:26px}
+  .complete-mark{font-size:48px}
+  button{min-height:46px}
+  input,select,textarea{min-height:44px;max-width:100%}
+}
+
+/* スマホ〜極小縦 */
+@media (max-width:480px) and (orientation:portrait){
+  .product-grid{grid-template-columns:1fr!important}
+  .product{min-height:96px}
+  .topbar .brand{font-size:15px}
+  .start-wrap h1{font-size:28px}
+  .title{font-size:22px}
+  .primary{padding:16px 32px;font-size:20px}
+  .employee-btn[style*="right:170px"]{display:none} /* 狭い画面は設定ボタンを従業員画面内に */
+}
+
+/* タブレット横向きでカートを見やすく */
+@media (min-width:901px) and (max-height:800px) and (orientation:landscape){
+  .content{padding:16px 20px 80px}
+  .scan-layout{grid-template-columns:1fr 300px;gap:14px}
+  .product-grid{grid-template-columns:repeat(4,1fr);gap:10px}
+  .product{min-height:115px;padding:12px}
+  .product .icon{font-size:26px}
+  .topbar{height:56px}
+  .title{font-size:22px;margin:8px 0}
+}
+
+/* セーフエリア（ノッチ・ホームバー対応） */
+@supports (padding: max(0px)){
+  .employee-btn{
+    bottom:max(14px, env(safe-area-inset-bottom));
+    right:max(14px, env(safe-area-inset-right));
+  }
+  .content{
+    padding-bottom:max(100px, calc(80px + env(safe-area-inset-bottom)));
+  }
+  .screen{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+}
+
+</style>
+</head>
+<body>
+
+<button id="staffCallButton" class="employee-btn" onclick="callStaff()">👨‍💼 店員呼び出し</button>
+<button class="employee-btn" style="right:170px" onclick="openEmployee()">⚙ 従業員操作</button>
+
+<section id="start" class="screen active" style="align-items:center;justify-content:center">
+  <div class="start-wrap">
+    <div class="start-logo">SELF CHECKOUT</div>
+    <h1>セルフレジ</h1>
+    <p>お会計を始める場合は「スタート」を押してください</p>
+    <button class="primary" onclick="go('bag')">スタート</button>
+  </div>
+</section>
+
+<section id="bag" class="screen" style="display:none;flex-direction:column">
+  <div class="topbar"><div class="brand">SELF CHECKOUT</div><div class="progress">袋の選択</div></div>
+  <div class="content"><div class="center">
+    <div class="title">レジ袋はご利用ですか？</div>
+    <p class="caption">レジ袋をご利用の場合は、商品と一緒にお会計となります。</p>
+    <div class="choice-row">
+      <button class="choice" onclick="setBag(true)">🛍️ はい<small>レジ袋 1枚　3円</small></button>
+      <button class="choice" onclick="setBag(false)">🚫 いいえ<small>レジ袋を利用しません</small></button>
+    </div>
+  </div></div>
+</section>
+
+<section id="scan" class="screen" style="display:none;flex-direction:column">
+  <div class="topbar"><div class="brand">SELF CHECKOUT</div><div class="progress">商品を選択</div></div>
+  <div class="content">
+    <div class="scan-layout">
+      <div class="product-area">
+        <div style="font-size:19px;font-weight:600;margin-bottom:16px">商品を選択してください</div>
+        <div id="products" class="product-grid"></div>
+      </div>
+      <div class="cart">
+        <div class="cart-title">お買い上げ商品</div>
+        <div id="cart"></div>
+        <div class="total"><span>合計</span><span id="total">¥0</span></div>
+        <button class="checkout" onclick="toPayment()">お支払いへ</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="payment" class="screen" style="display:none;flex-direction:column">
+  <div class="topbar"><div class="brand">SELF CHECKOUT</div><div class="progress">お支払い</div></div>
+  <div class="content"><div class="payment-box">
+    <div class="title" style="margin-top:0">お支払い方法を選択してください</div>
+    <div class="payment-total"><span>お支払い金額</span><strong id="payTotal">¥0</strong></div>
+    <div class="pay-grid">
+      <button class="pay" onclick="startPayment('現金')"><span>💴</span>現金</button>
+      <button class="pay" onclick="startPayment('クレジットカード')"><span>💳</span>クレジットカード</button>
+      <button class="pay" onclick="startPayment('電子マネー')"><span>📱</span>電子マネー</button>
+    </div>
+    <div id="instruction" class="instruction" style="display:none"></div>
+  </div></div>
+</section>
+
+<section id="complete" class="screen" style="display:none;align-items:center;justify-content:center">
+  <div class="complete-box">
+    <div class="complete-mark">✓</div>
+    <h1>お支払いが完了しました</h1>
+    <p>ご利用ありがとうございました。</p>
+    <button class="primary" onclick="resetAll()" style="margin-top:25px">終了</button>
+  </div>
+</section>
+
+<section id="employeeScreen" class="screen employee-screen" style="display:none">
+  <div class="employee-panel">
+    <h1>従業員操作</h1>
+    <div class="sub">このレジの設定・状態を変更できます。</div>
+    <div class="setting-grid">
+      <div class="setting">
+        <label>店舗表示名</label>
+        <input id="storeName" value="SELF CHECKOUT">
+      </div>
+      <div class="setting">
+        <label>レジ袋価格</label>
+        <input id="bagPrice" type="number" value="3" min="0">
+      </div>
+      <div class="setting switch">
+        <label>操作音</label><input id="soundOn" type="checkbox" checked>
+      </div>
+      <div class="setting switch">
+        <label>店員呼び出しボタン</label><input id="callOn" type="checkbox" checked>
+      </div>
+    </div>
+    <div class="setting" style="margin-top:14px">
+      <label>商品管理</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <input id="newProductName" placeholder="商品名">
+        <input id="newProductPrice" type="number" min="0" placeholder="価格">
+        <input id="newProductIcon" placeholder="絵文字（任意）" maxlength="2">
+      </div>
+      <button class="emp-action" style="margin-top:10px" onclick="addStaffProduct()">＋ 商品を追加</button>
+      <div id="productAdminList" style="margin-top:15px"></div>
+    </div>
+    <div class="emp-actions">
+      <button class="emp-action" onclick="saveSettings()">設定を保存</button>
+      <button class="emp-action" onclick="testSound()">操作音をテスト</button>
+      <button class="emp-action gray" onclick="employeeReset()">取引をリセット</button>
+      <button class="emp-action red" onclick="callStaff()">店員呼び出し</button>
+      <button class="emp-action gray" onclick="closeEmployee()">閉じる</button>
+    </div>
+    <div id="status" class="status">設定を確認してください。</div>
+  </div>
+</section>
+
+<script>
+const products=[
+{name:"百人一首",price:800,icon:"🎴"},{name:"ペン",price:150,icon:"🖊️"},
+{name:"アクセサリー",price:500,icon:"💍"},{name:"箸入れ",price:250,icon:"🥢"},
+{name:"メモ帳",price:200,icon:"📓"},{name:"ポーチ",price:600,icon:"👝"},
+{name:"キーホルダー",price:300,icon:"🔑"},{name:"シール",price:100,icon:"🏷️"},
+{name:"果物類",price:250,icon:"🍎"},{name:"野菜類",price:200,icon:"🥬"},
+{name:"鍋",price:2500,icon:"🍲"},{name:"コップ",price:300,icon:"🥤"},
+{name:"スプーン",price:150,icon:"🥄"},{name:"フォーク",price:150,icon:"🍴"},
+{name:"ナイフ",price:200,icon:"🔪"},{name:"お皿",price:400,icon:"🍽️"},
+{name:"フライ返し",price:350,icon:"🍳"},{name:"フライパン",price:1800,icon:"🍳"},
+{name:"コップ",price:300,icon:"🥤"},{name:"卵",price:100,icon:"🥚"}
+];
+let cart=[],bag=false,settings={bagPrice:3,sound:true,call:true};
+
+function beep(freq=650,duration=.08){
+ if(!settings.sound)return;
+ const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+ const c=new C(),o=c.createOscillator(),g=c.createGain();
+ o.frequency.value=freq;o.type="sine";o.connect(g);g.connect(c.destination);
+ g.gain.setValueAtTime(.001,c.currentTime);g.gain.exponentialRampToValueAtTime(.07,c.currentTime+.01);
+ g.gain.exponentialRampToValueAtTime(.001,c.currentTime+duration);o.start();o.stop(c.currentTime+duration);
+}
+function go(id){
+ beep();
+ document.querySelectorAll('.screen').forEach(s=>{s.classList.remove('active');s.style.display='none'});
+ const s=document.getElementById(id);s.classList.add('active');s.style.display=(id==='start'||id==='complete')?'flex':'flex';
+}
+function setBag(v){bag=v;go('scan');renderProducts()}
+function renderProducts(){
+ document.getElementById('products').innerHTML=products.map((p,i)=>`
+ <div class="product"><div class="icon">${p.icon}</div><div class="name">${p.name}</div>
+ <div class="price">¥${p.price.toLocaleString()}</div>
+ <button class="add" onclick="addProduct(${i})">商品を追加</button></div>`).join('');
+ renderCart();
+}
+function addProduct(i){const found=cart.find(x=>x.name===products[i].name);if(found)found.qty++;else cart.push({...products[i],qty:1});beep(1050);renderCart()}
+function changeQty(i,d){cart[i].qty+=d;if(cart[i].qty<=0)cart.splice(i,1);beep();renderCart()}
+function renderCart(){
+ let items=cart.map((p,i)=>`<div class="cart-item"><div><div class="item-name">${p.icon} ${p.name}</div>
+ <div class="controls"><button class="qty-btn" onclick="changeQty(${i},-1)">−</button><span class="qty-num">${p.qty}</span><button class="qty-btn" onclick="changeQty(${i},1)">＋</button>
+ <button class="remove" onclick="cart.splice(${i},1);renderCart()">削除</button></div></div>
+ <div class="item-price">¥${(p.price*p.qty).toLocaleString()}</div></div>`).join('');
+ if(bag)items+=`<div class="cart-item"><div><div class="item-name">🛍️ レジ袋</div><div class="controls"><span class="qty-num">1枚</span></div></div><div class="item-price">¥${settings.bagPrice}</div></div>`;
+ document.getElementById('cart').innerHTML=items||'<div class="empty">商品が入っていません</div>';
+ const total=cart.reduce((s,p)=>s+p.price*p.qty,0)+(bag?settings.bagPrice:0);
+ document.getElementById('total').textContent='¥'+total.toLocaleString();
+}
+function toPayment(){
+ if(!cart.length){alert('商品を選択してください。');return}
+ document.getElementById('payTotal').textContent=document.getElementById('total').textContent;
+ document.getElementById('instruction').style.display='none';go('payment');
+}
+function startPayment(method){
+ const box=document.getElementById('instruction');box.style.display='block';
+ if(method==='現金'){box.textContent='現金をお入れください。';setTimeout(finishPayment,1300)}
+ if(method==='クレジットカード'){box.textContent='カードをかざしてください。';setTimeout(finishPayment,1800)}
+ if(method==='電子マネー'){box.textContent='スマートフォンまたは電子マネーをかざしてください。';setTimeout(finishPayment,1800)}
+ beep(850);
+}
+function finishPayment(){beep(1000,.18);setTimeout(()=>go('complete'),400)}
+function resetAll(){cart=[];bag=false;go('start')}
+function openEmployee(){document.querySelectorAll('.screen').forEach(s=>{s.classList.remove('active');s.style.display='none'});document.getElementById('employeeScreen').classList.add('active');document.getElementById('employeeScreen').style.display='block';renderProductAdmin()}
+function closeEmployee(){go('start')}
+function renderProductAdmin(){
+ const el=document.getElementById('productAdminList');
+ if(!el)return;
+ el.innerHTML=products.map((p,i)=>`
+ <div style="display:grid;grid-template-columns:45px 1fr 120px 80px;gap:8px;align-items:center;border-top:1px solid #eee;padding:9px 0">
+   <input value="${p.icon}" maxlength="2" onchange="editStaffProduct(${i},'icon',this.value)" style="padding:8px;border:1px solid #bbb;border-radius:5px">
+   <input value="${p.name}" onchange="editStaffProduct(${i},'name',this.value)" style="padding:8px;border:1px solid #bbb;border-radius:5px">
+   <input type="number" min="0" value="${p.price}" onchange="editStaffProduct(${i},'price',this.value)" style="padding:8px;border:1px solid #bbb;border-radius:5px">
+   <button class="emp-action red" style="padding:8px 10px" onclick="deleteStaffProduct(${i})">削除</button>
+ </div>`).join('');
+}
+function addStaffProduct(){
+ const name=document.getElementById('newProductName').value.trim();
+ const price=Math.max(0,Number(document.getElementById('newProductPrice').value)||0);
+ const icon=document.getElementById('newProductIcon').value.trim()||'🛒';
+ if(!name){document.getElementById('status').textContent='商品名を入力してください。';return}
+ products.push({name,price,icon});
+ document.getElementById('newProductName').value='';
+ document.getElementById('newProductPrice').value='';
+ document.getElementById('newProductIcon').value='';
+ renderProductAdmin();
+ if(document.getElementById('scan').classList.contains('active'))renderProducts();
+ document.getElementById('status').textContent=`「${name}」を追加しました。`;
+ beep(900,.12);
+}
+function editStaffProduct(i,key,value){
+ if(key==='price') value=Math.max(0,Number(value)||0);
+ products[i][key]=value;
+ if(document.getElementById('scan').classList.contains('active'))renderProducts();
+ document.getElementById('status').textContent=`「${products[i].name}」を変更しました。`;
+}
+function deleteStaffProduct(i){
+ const name=products[i].name;
+ products.splice(i,1);
+ cart=cart.filter(x=>x.name!==name);
+ renderProductAdmin();
+ if(document.getElementById('scan').classList.contains('active'))renderProducts();
+ document.getElementById('status').textContent=`「${name}」を削除しました。`;
+ beep(500,.1);
+}
+
+function saveSettings(){
+ settings.bagPrice=Math.max(0,Number(document.getElementById('bagPrice').value)||0);
+ settings.sound=document.getElementById('soundOn').checked;
+ settings.call=document.getElementById('callOn').checked;
+ document.querySelector('.brand').textContent=document.getElementById('storeName').value||'SELF CHECKOUT';
+ if(document.getElementById('scan').classList.contains('active'))renderCart();
+ document.getElementById('status').textContent='設定を保存しました。';
+ beep(900,.12);
+}
+function testSound(){const old=settings.sound;settings.sound=true;beep(900,.15);settings.sound=old;document.getElementById('status').textContent='操作音を再生しました。'}
+function employeeReset(){cart=[];bag=false;document.getElementById('status').textContent='現在の取引をリセットしました。';beep()}
+function callStaff(){
+  const status=document.getElementById('status');
+  if(status) status.textContent='店員呼び出しを受け付けました。';
+ const b=document.getElementById('staffCallButton');
+ if(b){b.textContent='🔔 店員呼び出し済み';b.style.background='#8b2d2d';setTimeout(()=>{b.textContent='👨‍💼 店員呼び出し';b.style.background='#444'},4000)}
+ beep(1200,.2);
+}
+</script>
+</body>
+</html>
